@@ -8,6 +8,8 @@
   <body>
     <h3>Processing your payment...</h3>
     <script>
+      const SUPABASE_FUNCTION_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1";
+      const SUPABASE_ANON_KEY = "sb_publishable_FinzUDjnI7Sb4v7dXlHvEQ_VFyi8Y8b";
       (async function () {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -22,7 +24,7 @@
 
           // Step 1: Create order via Edge Function
           const createOrderRes = await fetch(
-            "https://kokmitxmaqhevmxnhfvn.supabase.co/functions/v1/create-diagram-order",
+            "${SUPABASE_FUNCTION_URL}/create-diagram-order",
             {
               method: "POST",
               headers: {
@@ -67,7 +69,7 @@
               try {
                 // Step 3: Verify payment via Edge Function
                 const verifyRes = await fetch(
-                  "https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/verify-diagram-payment",
+                  "${SUPABASE_FUNCTION_URL}/verify-diagram-payment",
                   {
                     method: "POST",
                     headers: {
