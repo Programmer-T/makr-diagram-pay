@@ -110,9 +110,17 @@
                   return;
                 }
 
-                alert(
-                  "Payment successful. Return to Makr to generate your diagram.",
-                );
+                console.log("verify-diagram-payment response:", verifyData);
+
+                if (!verifyData.ok) {
+                  alert(
+                    "Payment verification failed: " +
+                      (verifyData.error || verifyData.message || "Unknown error"),
+                  );
+                  return;
+                }
+
+                alert("Payment successful. Return to Makr to generate your diagram.");
 
                 // Close if opened in a new window
                 if (window.opener) {
