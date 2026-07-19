@@ -73,6 +73,7 @@
               diagram_type: diagramType,
             },
             handler: async function (response) {
+              console.log("Razorpay handler response:", response);
               try {
                 // Step 3: Verify payment via Edge Function
                 const verifyRes = await fetch(
