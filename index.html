@@ -8,8 +8,10 @@
   <body>
     <h3>Processing your payment...</h3>
     <script>
-      const SUPABASE_FUNCTION_URL = "https://kokmitxmaqhevmxnhfvn.supabase.co/functions/v1";
+      const SUPABASE_FUNCTION_URL =
+        "https://kokmitxmaqhevmxnhfvn.supabase.co/functions/v1";
       const SUPABASE_ANON_KEY = "sb_publishable_FinzUDjnI7Sb4v7dXlHvEQ_VFyi8Y8b";
+
       (async function () {
         try {
           const params = new URLSearchParams(window.location.search);
@@ -22,7 +24,6 @@
             return;
           }
 
-          // Step 1: Create order via Edge Function
           // Step 1: Create order via Edge Function
           const createOrderRes = await fetch(
             `${SUPABASE_FUNCTION_URL}/create-diagram-order`,
@@ -45,7 +46,10 @@
             orderData = await createOrderRes.json();
           } catch (parseErr) {
             const text = await createOrderRes.text();
-            console.error("Non-JSON response from create-diagram-order:", text);
+            console.error(
+              "Non-JSON response from create-diagram-order:",
+              text,
+            );
             alert(
               "Order creation failed: server did not return JSON.\n\n" +
                 "Status: " +
@@ -56,10 +60,20 @@
             return;
           }
 
+          console.log("Order data from create-diagram-order:", orderData);
+
+          if (!orderData.ok) {
+            // Show the real error; don't go to Razorpay at all
+            alert(
+              "Failed to create order: " +
+                (orderData.error || orderData.message || "Unknown error"),
+            );
+            return;
+          }
+
           const orderId = orderData.order_id;
           const amount = orderData.amount; // paise
 
-          console.log("Order data from create-diagram-order:", orderData);
           console.log("Amount to Razorpay:", amount);
 
           // Step 2: Configure Razorpay Standard Checkout
@@ -78,15 +92,13 @@
             handler: async function (response) {
               console.log("Razorpay handler response:", response);
               try {
-                // Step 3: Verify payment via Edge Function
                 console.log("Verify payload:", {
-                  razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
                   user_id: userId,
                   project_id: projectId,
                   diagram_type: diagramType,
                 });
+
                 const verifyRes = await fetch(
                   `${SUPABASE_FUNCTION_URL}/verify-diagram-payment`,
                   {
@@ -96,9 +108,8 @@
                       apikey: SUPABASE_ANON_KEY,
                     },
                     body: JSON.stringify({
-                      razorpay_order_id: response.razorpay_order_id,
+                      // Order ID & signature are not present in response in your setup
                       razorpay_payment_id: response.razorpay_payment_id,
-                      razorpay_signature: response.razorpay_signature,
                       user_id: userId,
                       project_id: projectId,
                       diagram_type: diagramType,
@@ -111,7 +122,10 @@
                   verifyData = await verifyRes.json();
                 } catch (parseErr) {
                   const text = await verifyRes.text();
-                  console.error("Non-JSON response from verify-diagram-payment:", text);
+                  console.error(
+                    "Non-JSON response from verify-diagram-payment:",
+                    text,
+                  );
                   alert(
                     "Payment verification failed: server did not return JSON.\n\n" +
                       "Status: " +
@@ -122,19 +136,25 @@
                   return;
                 }
 
-                console.log("verify-diagram-payment response:", verifyData);
+                console.log(
+                  "verify-diagram-payment response:",
+                  verifyData,
+                );
 
                 if (!verifyData.ok) {
                   alert(
                     "Payment verification failed: " +
-                      (verifyData.error || verifyData.message || "Unknown error"),
+                      (verifyData.error ||
+                        verifyData.message ||
+                        "Unknown error"),
                   );
                   return;
                 }
 
-                alert("Payment successful. Return to Makr to generate your diagram.");
+                alert(
+                  "Payment successful. Return to Makr to generate your diagram.",
+                );
 
-                // Close if opened in a new window
                 if (window.opener) {
                   window.close();
                 }
