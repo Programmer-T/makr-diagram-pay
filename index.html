@@ -8,7 +8,7 @@
   <body>
     <h3>Processing your payment...</h3>
     <script>
-      const SUPABASE_FUNCTION_URL = "https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1";
+      const SUPABASE_FUNCTION_URL = "https://kokmitxmaqhevmxnhfvn.supabase.co/functions/v1";
       const SUPABASE_ANON_KEY = "sb_publishable_FinzUDjnI7Sb4v7dXlHvEQ_VFyi8Y8b";
       (async function () {
         try {
@@ -23,13 +23,14 @@
           }
 
           // Step 1: Create order via Edge Function
+          // Step 1: Create order via Edge Function
           const createOrderRes = await fetch(
-            "${SUPABASE_FUNCTION_URL}/create-diagram-order",
+            `${SUPABASE_FUNCTION_URL}/create-diagram-order`,
             {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                // Optionally: 'apikey': 'YOUR_ANON_KEY',
+                apikey: SUPABASE_ANON_KEY,
               },
               body: JSON.stringify({
                 user_id: userId,
@@ -39,12 +40,18 @@
             },
           );
 
-          const orderData = await createOrderRes.json();
-          if (!orderData.ok) {
-            console.error("Order creation failed", orderData);
+          let orderData;
+          try {
+            orderData = await createOrderRes.json();
+          } catch (parseErr) {
+            const text = await createOrderRes.text();
+            console.error("Non-JSON response from create-diagram-order:", text);
             alert(
-              "Failed to create order: " +
-                (orderData.error || orderData.message || "Unknown error"),
+              "Order creation failed: server did not return JSON.\n\n" +
+                "Status: " +
+                createOrderRes.status +
+                "\n\n" +
+                text,
             );
             return;
           }
@@ -69,12 +76,12 @@
               try {
                 // Step 3: Verify payment via Edge Function
                 const verifyRes = await fetch(
-                  "${SUPABASE_FUNCTION_URL}/verify-diagram-payment",
+                  `${SUPABASE_FUNCTION_URL}/verify-diagram-payment`,
                   {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
-                      // Optionally: 'apikey': 'YOUR_ANON_KEY',
+                      apikey: SUPABASE_ANON_KEY,
                     },
                     body: JSON.stringify({
                       razorpay_order_id: response.razorpay_order_id,
@@ -87,11 +94,18 @@
                   },
                 );
 
-                const verifyData = await verifyRes.json();
-                if (!verifyData.ok) {
+                let verifyData;
+                try {
+                  verifyData = await verifyRes.json();
+                } catch (parseErr) {
+                  const text = await verifyRes.text();
+                  console.error("Non-JSON response from verify-diagram-payment:", text);
                   alert(
-                    "Payment verification failed: " +
-                      (verifyData.error || "Unknown error"),
+                    "Payment verification failed: server did not return JSON.\n\n" +
+                      "Status: " +
+                      verifyRes.status +
+                      "\n\n" +
+                      text,
                   );
                   return;
                 }
