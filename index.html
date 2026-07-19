@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Makr Diagram Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  </head>
+  <body>
+    <h3>Processing your payment...</h3>
+    <script>
+      (async function () {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const userId = params.get("user_id");
+          const projectId = params.get("project_id");
+          const diagramType = params.get("diagram_type") || "architecture";
+
+          if (!userId || !projectId) {
+            alert("Missing user or project information.");
+            return;
+          }
+
+          // Step 1: Create order via Edge Function
+          const createOrderRes = await fetch(
+            "https://kokmitxmaqhevmxnhfvn.supabase.co/functions/v1/create-diagram-order",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                // Optionally: 'apikey': 'YOUR_ANON_KEY',
+              },
+              body: JSON.stringify({
+                user_id: userId,
+                project_id: projectId,
+                diagram_type: diagramType,
+              }),
+            },
+          );
+
+          const orderData = await createOrderRes.json();
+          if (!orderData.ok) {
+            console.error("Order creation failed", orderData);
+            alert(
+              "Failed to create order: " +
+                (orderData.error || orderData.message || "Unknown error"),
+            );
+            return;
+          }
+
+          const orderId = orderData.order_id;
+          const amount = orderData.amount; // paise
+
+          // Step 2: Configure Razorpay Standard Checkout
+          const options = {
+            key: "rzp_test_T2LXKSnlEpkXNU", // public key
+            amount: amount,
+            currency: "INR",
+            name: "Makr",
+            description: `Diagram: ${diagramType}`,
+            order_id: orderId,
+            notes: {
+              user_id: userId,
+              project_id: projectId,
+              diagram_type: diagramType,
+            },
+            handler: async function (response) {
+              try {
+                // Step 3: Verify payment via Edge Function
+                const verifyRes = await fetch(
+                  "https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/verify-diagram-payment",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      // Optionally: 'apikey': 'YOUR_ANON_KEY',
+                    },
+                    body: JSON.stringify({
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_signature: response.razorpay_signature,
+                      user_id: userId,
+                      project_id: projectId,
+                      diagram_type: diagramType,
+                    }),
+                  },
+                );
+
+                const verifyData = await verifyRes.json();
+                if (!verifyData.ok) {
+                  alert(
+                    "Payment verification failed: " +
+                      (verifyData.error || "Unknown error"),
+                  );
+                  return;
+                }
+
+                alert(
+                  "Payment successful. Return to Makr to generate your diagram.",
+                );
+
+                // Close if opened in a new window
+                if (window.opener) {
+                  window.close();
+                }
+              } catch (err) {
+                console.error("Verification error", err);
+                alert("Error verifying payment: " + err);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                // Optional: notify user they cancelled
+              },
+            },
+          };
+
+          const rzp = new Razorpay(options);
+          rzp.open();
+        } catch (err) {
+          console.error("Payment page error", err);
+          alert("Unexpected error: " + err);
+        }
+      })();
+    </script>
+  </body>
+</html>
