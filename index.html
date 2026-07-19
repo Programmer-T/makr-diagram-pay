@@ -59,6 +59,9 @@
           const orderId = orderData.order_id;
           const amount = orderData.amount; // paise
 
+          console.log("Order data from create-diagram-order:", orderData);
+          console.log("Amount to Razorpay:", amount);
+
           // Step 2: Configure Razorpay Standard Checkout
           const options = {
             key: "rzp_test_T2LXKSnlEpkXNU", // public key
@@ -76,6 +79,14 @@
               console.log("Razorpay handler response:", response);
               try {
                 // Step 3: Verify payment via Edge Function
+                console.log("Verify payload:", {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  user_id: userId,
+                  project_id: projectId,
+                  diagram_type: diagramType,
+                });
                 const verifyRes = await fetch(
                   `${SUPABASE_FUNCTION_URL}/verify-diagram-payment`,
                   {
