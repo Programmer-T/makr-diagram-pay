@@ -91,13 +91,18 @@
             },
             handler: async function (response) {
               console.log("Razorpay handler response:", response);
+
               try {
-                console.log("Verify payload:", {
+                const verifyPayload = {
+                  razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
                   user_id: userId,
                   project_id: projectId,
                   diagram_type: diagramType,
-                });
+                };
+
+                console.log("Verify payload:", verifyPayload);
 
                 const verifyRes = await fetch(
                   `${SUPABASE_FUNCTION_URL}/verify-diagram-payment`,
@@ -107,13 +112,7 @@
                       "Content-Type": "application/json",
                       apikey: SUPABASE_ANON_KEY,
                     },
-                    body: JSON.stringify({
-                      // Order ID & signature are not present in response in your setup
-                      razorpay_payment_id: response.razorpay_payment_id,
-                      user_id: userId,
-                      project_id: projectId,
-                      diagram_type: diagramType,
-                    }),
+                    body: JSON.stringify(verifyPayload),
                   },
                 );
 
@@ -122,10 +121,7 @@
                   verifyData = await verifyRes.json();
                 } catch (parseErr) {
                   const text = await verifyRes.text();
-                  console.error(
-                    "Non-JSON response from verify-diagram-payment:",
-                    text,
-                  );
+                  console.error("Non-JSON response from verify-diagram-payment:", text);
                   alert(
                     "Payment verification failed: server did not return JSON.\n\n" +
                       "Status: " +
@@ -136,24 +132,17 @@
                   return;
                 }
 
-                console.log(
-                  "verify-diagram-payment response:",
-                  verifyData,
-                );
+                console.log("verify-diagram-payment response:", verifyData);
 
                 if (!verifyData.ok) {
                   alert(
                     "Payment verification failed: " +
-                      (verifyData.error ||
-                        verifyData.message ||
-                        "Unknown error"),
+                      (verifyData.error || verifyData.message || "Unknown error"),
                   );
                   return;
                 }
 
-                alert(
-                  "Payment successful. Return to Makr to generate your diagram.",
-                );
+                alert("Payment successful. Return to Makr to generate your diagram.");
 
                 if (window.opener) {
                   window.close();
